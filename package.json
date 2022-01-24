@@ -28,7 +28,6 @@
     "jsxSingleQuote": false,
     "trailingComma": "none",
     "bracketSpacing": true,
-    "jsxBracketSameLine": true,
     "arrowParens": "avoid",
     "requirePragma": false,
     "insertPragma": false,
@@ -39,6 +38,7 @@
   "dependencies": {
     "bluebird": "^3.7.2",
     "immer": "^9.0.12",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "proper-lockfile": "^4.1.2"
   }
 }
