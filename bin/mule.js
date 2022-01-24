@@ -75,14 +75,7 @@ class FileSequence {
   }
 
   async waitForCommit() {
-    console.log(`waitForCommit`);
-    await new Promise(resolve =>
-      this.state.once("commit", state => {
-        console.log(`commit`, state);
-        resolve();
-      })
-    );
-    console.log(`got commit`);
+    await new Promise(resolve => this.state.once("commit", resolve));
   }
 
   async waitForInput() {
@@ -112,9 +105,7 @@ class FileSequence {
   async nextInput() {
     await this.init();
 
-    console.log(`waitForInput`);
     await this.waitForInput();
-    console.log(`gotInput`);
 
     const name = path.join(this.dir, this.makeName(this.nextIn));
     const next = (this.nextIn = (this.nextIn + 1) % this.capacity);
@@ -135,7 +126,7 @@ class FileSequence {
 async function writeSequence(seq) {
   console.log(`Writing`);
   for (const i of _.range(10)) {
-    await Promise.delay(10);
+    await Promise.delay(40);
     const { name, token } = await seq.nextOutput();
     console.log(`Writing ${name}`);
     await fs.promises.writeFile(name, JSON.stringify({ i, name }));
@@ -149,9 +140,7 @@ async function readSequence(seq, count) {
   console.log(`Reading`);
   while (true) {
     if (count && --count < 1) break;
-    console.log(`delay`);
     await Promise.delay(20);
-    console.log(`nextInput`);
     const { name, token } = await seq.nextInput();
     console.log(`Reading ${name}`);
     const data = JSON.parse(await fs.promises.readFile(name, "utf8"));
@@ -160,15 +149,20 @@ async function readSequence(seq, count) {
   }
 }
 
+async function keepAlive() {
+  while (true) {
+    console.log(`Sleeping`);
+    await Promise.delay(1000);
+  }
+}
+
 async function main() {
+  this._timer = setInterval(() => {}, 1 << 30);
+
   const seq = new FileSequence("tmp/fs1", { extension: ".json" });
-  // await writeSequence(seq);
-  await readSequence(seq, 3);
-  await readSequence(seq, 3);
-  await readSequence(seq);
-  console.log(`Finished reading`);
-  // const res = await Promise.all([writeSequence(seq), readSequence(seq)]);
-  // console.log(`Got:`, res);
+  const res = await Promise.all([writeSequence(seq), readSequence(seq)]);
+  console.log(`Got:`, res);
+  await keepAlive();
 }
 
 main()
