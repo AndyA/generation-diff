@@ -26,7 +26,7 @@ class FileSequence {
       // Init or load state
       this.state = await StateFile.create(
         path.join(this.dir, "fs-state.json"),
-        { in: 0, out: 0, opt }
+        { in: 0, out: 0, closed: false, opt }
       );
 
       if (!_.isEqual(opt, this.state.current.opt))
@@ -56,6 +56,10 @@ class FileSequence {
     return space < 0 ? space + capacity : space;
   }
 
+  get closed() {
+    return this.state.current.closed;
+  }
+
   makeName(seq) {
     const { opt } = this;
     const digits = (opt.dirSize - 1).toString().length;
@@ -75,19 +79,36 @@ class FileSequence {
   }
 
   async waitForCommit() {
+    // Without the interval timer Node's listener count can drop to zero
+    // when the event fires - if there are no other pending listeners.
+    // If that happens the process will exit immediately.
+    const it = setInterval(() => {}, 1 << 30);
     await new Promise(resolve => this.state.once("commit", resolve));
+    clearInterval(it);
   }
 
   async waitForInput() {
-    while (this.available === 0) await this.waitForCommit();
+    while (true) {
+      if (this.available) return true;
+      if (this.closed) return false;
+      await this.waitForCommit();
+    }
   }
 
   async waitForSpace() {
     while (this.space === 0) await this.waitForCommit();
   }
 
+  async close() {
+    await this.state.getSequence("output").makeToken(state => {
+      state.closed = true;
+    })();
+  }
+
   async nextOutput() {
     await this.init();
+
+    if (this.closed) throw new Error(`Can't append to a closed stream`);
 
     await this.waitForSpace();
 
@@ -105,7 +126,8 @@ class FileSequence {
   async nextInput() {
     await this.init();
 
-    await this.waitForInput();
+    const more = await this.waitForInput();
+    if (!more) return null;
 
     const name = path.join(this.dir, this.makeName(this.nextIn));
     const next = (this.nextIn = (this.nextIn + 1) % this.capacity);
@@ -125,14 +147,15 @@ class FileSequence {
 
 async function writeSequence(seq) {
   console.log(`Writing`);
-  for (const i of _.range(10)) {
-    await Promise.delay(40);
+  for (const i of _.range(50)) {
+    await Promise.delay(5);
     const { name, token } = await seq.nextOutput();
     console.log(`Writing ${name}`);
     await fs.promises.writeFile(name, JSON.stringify({ i, name }));
     await token();
     console.log(`Written ${name}`);
   }
+  await seq.close();
   console.log(`Finished writing`);
 }
 
@@ -141,7 +164,9 @@ async function readSequence(seq, count) {
   while (true) {
     if (count && --count < 1) break;
     await Promise.delay(20);
-    const { name, token } = await seq.nextInput();
+    const next = await seq.nextInput();
+    if (!next) break;
+    const { name, token } = next;
     console.log(`Reading ${name}`);
     const data = JSON.parse(await fs.promises.readFile(name, "utf8"));
     await token();
@@ -157,11 +182,10 @@ async function keepAlive() {
 }
 
 async function main() {
-  this._timer = setInterval(() => {}, 1 << 30);
+  // setInterval(() => {}, 1 << 30);
 
   const seq = new FileSequence("tmp/fs1", { extension: ".json" });
-  const res = await Promise.all([writeSequence(seq), readSequence(seq)]);
-  console.log(`Got:`, res);
+  await Promise.all([writeSequence(seq), readSequence(seq)]);
   await keepAlive();
 }
 
