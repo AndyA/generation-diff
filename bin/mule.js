@@ -33,24 +33,30 @@ class ObjectBrigade {
     }
   }
 
-  async fillReadQueue() {
+  async nextChunk() {
     const next = await this.bb.nextInput();
 
     if (!next) {
       this.eof = true;
-    } else {
-      const { name, token } = next;
-      const data = await fs.promises.readFile(name, "utf8");
-
-      // Each line gets its own completion token
-      this.readQueue = data
-        .split(/\n/)
-        .map(JSON.parse)
-        .map(object => ({ object, token: token.fork() }));
-
-      // Complete the original base token.
-      await token();
+      return null;
     }
+
+    const { name, token } = next;
+    const data = await fs.promises.readFile(name, "utf8");
+    const objects = data.split(/\n/).map(JSON.parse);
+    return { objects, token };
+  }
+
+  async fillReadQueue() {
+    const next = await this.nextChunk();
+    if (!next) return;
+
+    const { objects, token } = next;
+    // Each line gets its own completion token
+    this.readQueue = objects.map(object => ({ object, token: token.fork() }));
+
+    // Complete the original base token.
+    await token();
   }
 
   async write(doc) {
@@ -69,11 +75,29 @@ class ObjectBrigade {
   }
 
   async consume(consumer) {
-    const next = this.read();
-    if (!next) return false;
-    await Promise.resolve(consumer(next.object));
-    await next.token();
-    return true;
+    // First consume anything that's in readQueue. They
+    // have individual tokens that need to be called
+    // after processing each item.
+    if (this.readQueue.length) {
+      const work = this.readQueue;
+      this.readQueue = [];
+      await Promise.all(
+        work.map(({ token, object }) =>
+          Promise.resolve(consumer(object)).then(() => token())
+        )
+      );
+    }
+
+    // Switch to complete chunks. Only call the completion
+    // token once the whole chunk has been processed.
+    while (true) {
+      const next = await this.nextChunk();
+      if (!next) return;
+      const { token, objects } = next;
+      await Promise.all(
+        objects.map(object => Promise.resolve(consumer(object)))
+      ).then(() => token());
+    }
   }
 }
 
@@ -127,12 +151,20 @@ async function readSequence(ob) {
   console.log(`Finished reading`);
 }
 
+async function consumeSequence(ob) {
+  const log = logger(`read`, 100000);
+  console.log(`Consuming`);
+  await ob.consume(log);
+  console.log(`Finished consuming`);
+}
+
 async function main(verb) {
   const ob = new ObjectBrigade("tmp/bb1");
   // await ob.bb.init();
   const actions = {
     read: readSequence,
     write: writeSequence,
+    consume: consumeSequence,
     both: ob => Promise.all([writeSequence(ob), readSequence(ob)])
   };
 
