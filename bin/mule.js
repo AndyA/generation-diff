@@ -26,6 +26,7 @@ function makeRecord(id) {
   };
 }
 
+// 2m47.260s
 async function writeSequence(ob) {
   const log = logger(`write`, 100000);
   console.log(`Writing`);
@@ -37,6 +38,7 @@ async function writeSequence(ob) {
   console.log(`Finished writing`);
 }
 
+// 1m59.475s
 async function readSequence(ob) {
   // await Promise.delay(500);
   const log = logger(`read`, 100000);
@@ -51,6 +53,7 @@ async function readSequence(ob) {
   console.log(`Finished reading`);
 }
 
+// 1m46.995s
 async function consumeSequence(ob) {
   const log = logger(`read`, 100000);
   console.log(`Consuming`);
