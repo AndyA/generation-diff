@@ -1,13 +1,9 @@
 const Promise = require("bluebird");
 const { ObjectBrigadeQueue } = require("../lib/tools/object-brigade");
 
-function logger(type, every, delay) {
-  let count = 0;
-  return async () => {
-    if (!(++count % every)) {
-      console.log(`${type} ${count}`);
-      if (delay) await Promise.delay(delay);
-    }
+function logger(type, every) {
+  return offset => {
+    if (!(offset % every)) console.log(`${type} ${offset}`);
   };
 }
 
@@ -31,7 +27,7 @@ async function writeSequence(ob) {
   const log = logger(`write`, 100000);
   console.log(`Writing`);
   for (let id = 0; id < 80000000; id++) {
-    await log();
+    await log(id);
     await ob.write(makeRecord(id));
   }
   await ob.close();
@@ -46,8 +42,8 @@ async function readSequence(ob) {
   while (true) {
     const next = await ob.read();
     if (!next) break;
-    const { token } = next;
-    await log();
+    const { token, offset } = next;
+    await log(offset);
     await token();
   }
   console.log(`Finished reading`);
