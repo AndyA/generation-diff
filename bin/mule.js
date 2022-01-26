@@ -1,5 +1,5 @@
 const Promise = require("bluebird");
-const { ObjectBrigadeQueue } = require("../lib/tools/object-brigade");
+const { ObjectBrigadeStore } = require("../lib/tools/object-brigade");
 
 function logger(type, every) {
   return offset => {
@@ -9,6 +9,7 @@ function logger(type, every) {
 
 function makeRecord(id) {
   return {
+    index: id,
     id: "availability_p002mq9f" + id,
     source: "appw",
     kind: "availability_clip",
@@ -38,9 +39,11 @@ async function writeSequence(ob) {
 async function readSequence(ob) {
   // await Promise.delay(500);
   const log = logger(`read`, 100000);
+  const reader = await ob.getReader("in");
   console.log(`Reading`);
+  await reader.seek(0);
   while (true) {
-    const next = await ob.read();
+    const next = await reader.read();
     if (!next) break;
     const { token, offset } = next;
     await log(offset);
@@ -49,12 +52,29 @@ async function readSequence(ob) {
   console.log(`Finished reading`);
 }
 
+async function seekTest(ob) {
+  const reader = await ob.getReader("in");
+  while (true) {
+    const pos = Math.floor(Math.random() * ob.size);
+    await reader.seek(pos);
+    const next = await reader.read();
+    if (!next) throw new Error(`Unexpected EOF`);
+    const { object, token, offset } = next;
+    console.log(
+      `Seek to ${pos} of ${ob.size}, got ${object.index} at ${offset}`
+    );
+    if (object.index !== pos || offset !== pos) throw new Error(`Bad seek`);
+    await token();
+  }
+}
+
 async function main(verb) {
-  const ob = new ObjectBrigadeQueue("tmp/bb1");
+  const ob = new ObjectBrigadeStore("tmp/bb1");
 
   const actions = {
     read: readSequence,
     write: writeSequence,
+    seek: seekTest,
     both: ob => Promise.all([writeSequence(ob), readSequence(ob)])
   };
 
