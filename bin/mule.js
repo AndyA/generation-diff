@@ -1,5 +1,5 @@
 const Promise = require("bluebird");
-const { ObjectBrigade } = require("../lib/tools/object-brigade");
+const { ObjectBrigadeQueue } = require("../lib/tools/object-brigade");
 
 function logger(type, every, delay) {
   let count = 0;
@@ -53,21 +53,12 @@ async function readSequence(ob) {
   console.log(`Finished reading`);
 }
 
-// 1m46.995s
-async function consumeSequence(ob) {
-  const log = logger(`read`, 100000);
-  console.log(`Consuming`);
-  await ob.consume(log);
-  console.log(`Finished consuming`);
-}
-
 async function main(verb) {
-  const ob = new ObjectBrigade("tmp/bb1");
+  const ob = new ObjectBrigadeQueue("tmp/bb1");
 
   const actions = {
     read: readSequence,
     write: writeSequence,
-    consume: consumeSequence,
     both: ob => Promise.all([writeSequence(ob), readSequence(ob)])
   };
 
