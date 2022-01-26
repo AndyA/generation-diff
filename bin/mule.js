@@ -53,10 +53,12 @@ async function readSequence(ob) {
 }
 
 async function seekTest(ob) {
-  const reader = await ob.getReader("in");
+  const reader = await ob.getReader("seek");
   while (true) {
     const pos = Math.floor(Math.random() * ob.size);
+
     await reader.seek(pos);
+
     const next = await reader.read();
     if (!next) throw new Error(`Unexpected EOF`);
     const { object, token, offset } = next;
