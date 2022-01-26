@@ -39,6 +39,7 @@
     "bluebird": "^3.7.2",
     "immer": "^9.0.12",
     "lodash": "^4.17.21",
-    "proper-lockfile": "^4.1.2"
+    "proper-lockfile": "^4.1.2",
+    "split2": "^4.1.0"
   }
 }
