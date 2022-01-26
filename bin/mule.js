@@ -63,7 +63,7 @@ async function consumeSequence(ob) {
 
 async function main(verb) {
   const ob = new ObjectBrigade("tmp/bb1");
-  // await ob.bb.init();
+
   const actions = {
     read: readSequence,
     write: writeSequence,
