@@ -23,9 +23,9 @@ const makeCompare = cf => (a, b) =>
 
 async function main(prevDB, nextDB) {
   const [prev, next] = await Promise.all(
-    [prevDB, nextDB].map(async (db, i) => {
+    [prevDB, nextDB].map(async ({ dir, ...opt }, i) => {
       const rs = new ReadState(
-        await new ObjectBrigadeStore(db).getReader(`in${i}`)
+        await new ObjectBrigadeStore(dir, opt).getReader(`in${i}`)
       );
       await rs.reader.seek(0);
       await rs.next();
@@ -38,7 +38,9 @@ async function main(prevDB, nextDB) {
   while (prev.current || next.current) {
     const pid = prev.current?.object.id ?? null;
     const nid = next.current?.object.id ?? null;
+
     const diff = compare(pid, nid);
+
     if (diff < 0) {
       console.log(`DELETE ${pid}`);
       await prev.next();
@@ -55,19 +57,18 @@ async function main(prevDB, nextDB) {
 }
 
 function test() {
-  const prev = [{ id: "A" }, { id: "C" }, { id: "D" }];
-  const next = [
-    { id: "@" },
-    { id: "A" },
-    { id: "B" },
-    { id: "D" },
-    { id: "E" }
-  ];
+  const [prev, next] = [
+    ["@", "A", "B", "D", "E"],
+    ["A", "C", "D", "F", "G"]
+  ]
+    .sort()
+    .map(ids => ids.map(id => ({ id })));
 
   const compare = makeCompare(cmp);
   while (prev.length || next.length) {
     const pid = prev.length ? prev[0].id : null;
     const nid = next.length ? next[0].id : null;
+
     const diff = compare(pid, nid);
     if (diff < 0) {
       console.log(`DELETE ${pid}`);
@@ -91,7 +92,12 @@ if (args.length) {
   if (!action) throw new Error(`Can't ${verb}`);
   action();
 } else {
-  main("db/pips.prev", "db/pips.next").catch(e => {
+  const [prev, next] = ["prev", "next"].map(set => ({
+    dir: `db/pips.${set}`,
+    dataDir: `/Volumes/db/pips.${set}`,
+    strictState: false
+  }));
+  main(prev, next).catch(e => {
     console.error(e);
     process.exit(1);
   });
