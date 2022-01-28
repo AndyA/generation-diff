@@ -1,4 +1,4 @@
-const Promise = require("bluebird");
+// const Promise = require("bluebird");
 const { ObjectBrigadeStore } = require("../lib/tools/object-brigade");
 
 function logger(type, every) {
