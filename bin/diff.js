@@ -48,6 +48,8 @@ async function main(prevDB, nextDB) {
       console.log(`ADD ${nid}`);
       await next.next();
     } else {
+      if (prev.current.object.ETag !== next.current.object.ETag)
+        console.log(`UPDATE ${nid}`);
       await Promise.all([prev.next(), next.next()]);
     }
   }
