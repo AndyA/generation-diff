@@ -3,13 +3,11 @@ const fs = require("fs");
 const split2 = require("split2");
 const { ObjectBrigadeStore } = require("../lib/tools/object-brigade");
 
-const tabFields = s => s.split(/\t/);
-
-const fixValue = v => (isNaN(v) ? v : Number(v));
-
 const file = "/data/scratch/pi2/slurpstate.txt";
 const db = "/db/scratch/pips.prev";
 
+const tabFields = s => s.split(/\t/);
+const fixValue = v => (isNaN(v) ? v : Number(v));
 const cleanRec = rec => _.pick(rec, "id", "ETag", "Key", "LastModified");
 
 async function main(file, db) {
