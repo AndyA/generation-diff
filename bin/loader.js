@@ -7,8 +7,11 @@ const tabFields = s => s.split(/\t/);
 
 const fixValue = v => (isNaN(v) ? v : Number(v));
 
-async function main(file) {
-  const ob = new ObjectBrigadeStore("tmp/pips");
+const file = "/data/scratch/pi2/slurpstate.txt";
+const db = "/db/scratch/pips.prev";
+
+async function main(file, db) {
+  const ob = new ObjectBrigadeStore(db);
   const src = fs.createReadStream(file).pipe(split2(tabFields));
   let names = null;
   let count = 0;
@@ -22,7 +25,7 @@ async function main(file) {
   await ob.close();
 }
 
-main("tmp/cats.txt").catch(e => {
+main(file, db).catch(e => {
   console.error(e);
   process.exit(1);
 });
