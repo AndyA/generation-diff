@@ -7,8 +7,12 @@ class ReadState {
   }
 
   async next() {
-    if (this.current) await this.current.token();
+    await this.end();
     return (this.current = await this.reader.read());
+  }
+
+  async end() {
+    if (this.current) await this.current.token();
   }
 }
 
@@ -32,9 +36,9 @@ async function main(prevDB, nextDB) {
   const compare = makeCompare(cmp);
 
   while (prev.current || next.current) {
-    const pid = prev.current?.id ?? null;
-    const nid = next.current?.id ?? null;
-    const diff = compare(prev.current.id, next.current.id);
+    const pid = prev.current?.object.id ?? null;
+    const nid = next.current?.object.id ?? null;
+    const diff = compare(pid, nid);
     if (diff < 0) {
       console.log(`DELETE ${pid}`);
       await prev.next();
@@ -45,6 +49,9 @@ async function main(prevDB, nextDB) {
       await Promise.all([prev.next(), next.next()]);
     }
   }
+
+  await prev.end();
+  await next.end();
 }
 
 function test() {
