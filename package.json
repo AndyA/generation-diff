@@ -41,6 +41,7 @@
     "lodash": "^4.17.21",
     "proper-lockfile": "^4.1.2",
     "split2": "^4.1.0",
+    "state-sequence-store": "github:AndyA/state-sequence-store",
     "write-file-atomic": "^4.0.0"
   }
 }
