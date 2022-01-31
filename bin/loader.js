@@ -3,8 +3,8 @@ const fs = require("fs");
 const split2 = require("split2");
 const { ObjectBrigadeStore } = require("../lib/tools/object-brigade");
 
-const file = "/data/scratch/pi2/slurpstate.txt";
-const db = "/db/scratch/pips.prev";
+const file = "/data/scratch/pi2/slurpstate2.txt";
+const db = "/db/scratch/pips.next";
 
 const tabFields = s => s.split(/\t/);
 const fixValue = v => (isNaN(v) ? v : Number(v));
