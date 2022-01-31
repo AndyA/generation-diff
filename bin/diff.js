@@ -28,7 +28,8 @@ const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const makeCompare = cf => (a, b) =>
   a === null ? (b === null ? 0 : 1) : b === null ? -1 : cf(a, b);
 
-const makeCheck = cf => (prev, next) => cmp(prev.object.id, next.object.id) < 0;
+const makeCheck = cf => (prev, next) =>
+  next.object.id && cmp(prev.object.id, next.object.id) < 0;
 
 async function main(prevDB, nextDB) {
   const compare = makeCompare(cmp);
