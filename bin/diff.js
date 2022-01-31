@@ -11,7 +11,7 @@ class ReadState {
     const { current, check } = this;
     await this.end();
     const next = await this.reader.read();
-    if (check && current && !this.check(current, next)) {
+    if (check && current && next && !this.check(current, next)) {
       console.error({ current, next });
       throw new Error(`Check failed`);
     }
@@ -115,9 +115,8 @@ if (args.length) {
   if (!action) throw new Error(`Can't ${verb}`);
   action();
 } else {
-  const [prev, next] = ["prev", "next"].map(set => ({
-    dir: `db/pips.${set}`,
-    dataDir: `/Volumes/db/pips.${set}`,
+  const [prev, next] = ["base", "next"].map(set => ({
+    dir: `/db/scratch/pips.${set}`,
     strictState: false
   }));
   main(prev, next).catch(e => {
