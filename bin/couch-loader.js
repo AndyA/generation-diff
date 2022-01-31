@@ -5,11 +5,11 @@ const fs = require("fs");
 const split2 = require("split2");
 const { ObjectBrigadeStore } = require("../lib/tools/object-brigade");
 
-const file = "/Volumes/db/pi2.json";
-const db = "tmp/pips.base";
+const file = "/db/scratch/pi2.json";
+const db = "/db/scratch/pips.base";
 
 const dumpedDoc = s =>
-  (m => (m ? JSON.parse(m[1]) : {}))(s.match(/^(\{.*\}),/));
+  (m => (m ? JSON.parse(m[1]) : {}))(s.match(/^(\{.*\}),?$/));
 
 const cleanRec = rec => _.pick(rec, "id", "ETag", "Key", "LastModified");
 
@@ -20,13 +20,13 @@ async function main(file, db) {
     loaded = 0;
   for await (const rec of src) {
     if (rec?.doc?.s3) {
-      await ob.write(cleanRec(rec.doc.s3));
+      await ob.write(cleanRec({ id: rec.id, ...rec.doc.s3 }));
       loaded++;
     }
     if (!(++seen % 10000))
       console.log(`Seen ${seen}, loaded ${loaded}, at ${rec?.id || "???"}`);
   }
-  console.log(`Loaded ${seen}`);
+  console.log(`Seen ${seen}, loaded ${loaded}`);
   await ob.close();
 }
 
